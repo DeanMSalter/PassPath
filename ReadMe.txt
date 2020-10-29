@@ -1,1 +1,1 @@
-Init readme
+passPath readme
