@@ -5,6 +5,10 @@ let panorama;
 let moveSpeedMode = 0;
 let linksCount = 0;
 let leftJunction = true;
+let movementCount = 0;
+let lastCheckpoint;
+let passPathString = "";
+let passPathNum = "";
 function initPano(listener) {
     let headingsByPanoId = [];
     let prevHeadingsByPanoId = [];
@@ -19,51 +23,71 @@ function initPano(listener) {
             scrollwheel: false,
         }
     );
+    let position = panorama.getPosition();
+    let latLng = {
+        lat : position.lat(),
+        lng : position.lng(),
+    };
+    lastCheckpoint = latLng;
 
-    panorama.addListener("position_changed", function() {
+
+    async function positionChanged() {
         if(panorama.getLinks()) {
             linksCount = panorama.getLinks().length
         }
         if (submitted) {
             return;
         }
-        let previousLinksCount = Object.keys(headingsByPanoId).length;
-        if (previousLinksCount > 2) {
-            let turnDirection = getTurnQuadrant(headingsByPanoId[panorama.pano]);
-            if (turnDirection) {
-                $("#route-cell").text($("#route-cell").text() + " " + turnDirection);
-                $("#routeRoad-cell").text($("#routeRoad-cell").text() + " " + panorama.location.shortDescription);
-            }
-        }
 
-        const positionCell = document.getElementById("position-cell");
+        // const positionCell = document.getElementById("position-cell");
         let position = panorama.getPosition();
         let latLng = {
             lat : position.lat(),
             lng : position.lng(),
         };
         pointsVisited.push(latLng);
-        positionCell.firstChild.nodeValue = position + "";
-    });
+        // positionCell.firstChild.nodeValue = position + "";
 
-    panorama.addListener("links_changed", () => {
-        const linksTable = document.getElementById("links_table");
-        while (linksTable.hasChildNodes()) {
-            linksTable.removeChild(linksTable.lastChild);
+        movementCount++;
+        if (movementCount >= 5) {
+            console.log(getHeading(lastCheckpoint, latLng));
+            console.log(getTurnQuadrant(getHeading(lastCheckpoint, latLng)));
+
+            let movementHeading = getHeading(lastCheckpoint, latLng);
+            let movementCompassQuad = getTurnQuadrant(movementHeading);
+            passPathString += movementCompassQuad;
+            passPathNum += movementHeading.toString() + " ";
+
+            console.log(movementHeading)
+            $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
+            $("#passPathStr-cell").text(passPathString);
+            $("#passPathNum-cell").text(passPathNum);
+
+            // $("#routeRoad-cell").text($("#routeRoad-cell").text() + " " + panorama.location.shortDescription);
+            lastCheckpoint = latLng;
+            movementCount = 0;
         }
+    }
+    panorama.addListener("position_changed", positionChanged);
+
+    panorama.addListener("links_changed", async function() {
+        // const linksTable = document.getElementById("links_table");
+        // while (linksTable.hasChildNodes()) {
+        //     linksTable.removeChild(linksTable.lastChild);
+        // }
         const links = panorama.getLinks();
 
         headingsByPanoId = [];
         for (const i in links) {
             headingsByPanoId[links[i].pano] = links[i].heading;
-            const row = document.createElement("tr");
-            linksTable.appendChild(row);
-            const labelCell = document.createElement("td");
-            labelCell.innerHTML = "<b>Link: " + i + "</b>";
-            const valueCell = document.createElement("td");
-            valueCell.innerHTML = links[i].description;
-            linksTable.appendChild(labelCell);
-            linksTable.appendChild(valueCell);
+            // const row = document.createElement("tr");
+            // linksTable.appendChild(row);
+            // const labelCell = document.createElement("td");
+            // labelCell.innerHTML = "<b>Link: " + i + "</b>";
+            // const valueCell = document.createElement("td");
+            // valueCell.innerHTML = links[i].description;
+            // linksTable.appendChild(labelCell);
+            // linksTable.appendChild(valueCell);
         }
 
 
@@ -86,6 +110,7 @@ function initPano(listener) {
             prevHeadingsByPanoId[panorama.getLinks()[i].pano] = panorama.getLinks()[i].heading;
         }
         if(speedMode && panorama.getLinks().length < 3  && moveSpeedMode <= 20 && leftJunction) {
+            await positionChanged();
             setTimeout(function(){
                 panorama.setPano(nextLink.pano);
             }, 1000);
@@ -110,18 +135,33 @@ $(document).on('keypress',function(e) {
     }
 });
 
+function getHeading(prevPoint, currPoint) {
+    let point1 = new google.maps.LatLng(prevPoint.lat, prevPoint.lng);
+    let point2 = new google.maps.LatLng(currPoint.lat, currPoint.lng);
+    let heading = google.maps.geometry.spherical.computeHeading(point1,point2);
+    return heading < 0 ? heading + 360 : heading;
+}
+
 function getTurnQuadrant(angle) {
-    let quandrant = Math.floor(angle/90);
+    let quandrant = Math.floor(angle/45);
 
     switch (quandrant) {
         case(0) :
-            return "F";
+            return "NNE";
         case(1) :
-            return "R";
+            return "NEE";
         case(2) :
-            return "B";
+            return "SEE";
         case(3) :
-            return "L";
+            return "SSE";
+        case(4) :
+            return "SSW";
+        case(5) :
+            return "SWW";
+        case(6) :
+            return "NWW";
+        case(7) :
+            return "NNW";
         default:
             return null;
     }
