@@ -10,6 +10,7 @@
 
 </head>
 <body>
+<div id="overlay"></div>
 <div id="pano"></div>
 <div id="floating-panel">
     <table>
@@ -17,17 +18,25 @@
 <!--            <td><b>Position</b></td>-->
 <!--            <td id="position-cell"> </td>-->
 <!--        </tr>-->
-        <tr>
+        <tr id="passPathRoute-row" class="hidden">
             <td><b>Route</b></td>
             <td id="route-cell"> </td>
         </tr>
         <tr>
-            <td><b>PassPathStr?</b></td>
+            <td><b>PassPathStr</b></td>
             <td id="passPathStr-cell"> </td>
         </tr>
-        <tr>
+        <tr id="passPathNum-row" class="hidden">
             <td><b>PassPathNum?</b></td>
             <td id="passPathNum-cell"> </td>
+        </tr>
+        <tr id="speedMode-row">
+            <td><b>SpeedMode Enabled</b></td>
+            <td id="speedMode-cell"> </td>
+        </tr>
+        <tr id="speedModeCount-row">
+            <td><b>SpeedMode Count</b></td>
+            <td id="speedModeCount-cell"> </td>
         </tr>
 <!--        <tr>-->
 <!--            <td><b>Roads</b></td>-->

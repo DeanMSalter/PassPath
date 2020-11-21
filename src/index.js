@@ -3,16 +3,25 @@ let speedMode = false;
 let pointsVisited = [];
 let panorama;
 let moveSpeedMode = 0;
-let linksCount = 0;
 let leftJunction = true;
-let movementCount = 0;
 let lastCheckpoint;
 let passPathString = "";
 let passPathNum = "";
-function initPano(listener) {
-    let headingsByPanoId = [];
-    let prevHeadingsByPanoId = [];
+let enableArrows = true;
 
+$(document).on("DOMNodeInserted", "path", function() {
+    if (!speedMode) {
+        hideArrows();
+    } else if (!enableArrows && speedMode) {
+        hideArrows();
+    }
+    if (!speedMode) {
+        sleep(1000).then(showArrows);
+    }
+});
+
+function initPano(listener) {
+    let prevHeadingsByPanoId = [];
     panorama = new google.maps.StreetViewPanorama(
         document.getElementById("pano"),
         {
@@ -21,102 +30,75 @@ function initPano(listener) {
             visible: true,
             clickToGo: false,
             scrollwheel: false,
+            fullscreenControl: false
         }
     );
-    let position = panorama.getPosition();
-    let latLng = {
-        lat : position.lat(),
-        lng : position.lng(),
-    };
-    lastCheckpoint = latLng;
-
 
     async function positionChanged() {
-        if(panorama.getLinks()) {
-            linksCount = panorama.getLinks().length
-        }
         if (submitted) {
             return;
         }
 
-        // const positionCell = document.getElementById("position-cell");
-        let position = panorama.getPosition();
         let latLng = {
-            lat : position.lat(),
-            lng : position.lng(),
+            lat : panorama.getPosition().lat(),
+            lng : panorama.getPosition().lng(),
         };
         pointsVisited.push(latLng);
-        // positionCell.firstChild.nodeValue = position + "";
 
-        movementCount++;
-        if (movementCount >= 5) {
-            console.log(getHeading(lastCheckpoint, latLng));
-            console.log(getTurnQuadrant(getHeading(lastCheckpoint, latLng)));
-
-            let movementHeading = getHeading(lastCheckpoint, latLng);
-            let movementCompassQuad = getTurnQuadrant(movementHeading);
-            passPathString += movementCompassQuad;
-            passPathNum += movementHeading.toString() + " ";
-
-            console.log(movementHeading)
-            $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
-            $("#passPathStr-cell").text(passPathString);
-            $("#passPathNum-cell").text(passPathNum);
-
-            // $("#routeRoad-cell").text($("#routeRoad-cell").text() + " " + panorama.location.shortDescription);
+        if (!lastCheckpoint) {
             lastCheckpoint = latLng;
-            movementCount = 0;
+            return;
         }
+
+        let movementHeading = getHeading(lastCheckpoint, latLng);
+        let movementCompassQuad = getTurnQuadrant(movementHeading);
+        passPathString += movementCompassQuad + ", ";
+        passPathNum += movementHeading.toString() + " ";
+
+        $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
+        $("#passPathStr-cell").text(passPathString);
+        $("#passPathNum-cell").text(passPathNum);
+
+
+        lastCheckpoint = latLng;
     }
+
     panorama.addListener("position_changed", positionChanged);
 
     panorama.addListener("links_changed", async function() {
-        // const linksTable = document.getElementById("links_table");
-        // while (linksTable.hasChildNodes()) {
-        //     linksTable.removeChild(linksTable.lastChild);
-        // }
         const links = panorama.getLinks();
-
-        headingsByPanoId = [];
-        for (const i in links) {
-            headingsByPanoId[links[i].pano] = links[i].heading;
-            // const row = document.createElement("tr");
-            // linksTable.appendChild(row);
-            // const labelCell = document.createElement("td");
-            // labelCell.innerHTML = "<b>Link: " + i + "</b>";
-            // const valueCell = document.createElement("td");
-            // valueCell.innerHTML = links[i].description;
-            // linksTable.appendChild(labelCell);
-            // linksTable.appendChild(valueCell);
-        }
-
-
         let nextLink;
         if(speedMode ) {
             //angles will be calculated from 0 - 180 in closeness so 181 will always be overridden.
             let distanceFromTargetAngle = 181;
-            for (let link in panorama.getLinks()) {
-                let  phi = Math.abs(panorama.getLinks()[link].heading - prevHeadingsByPanoId[panorama.pano]) % 360;       // This is either the distance or 360 - distance
+            links.every(function(link) {
+                let  phi = Math.abs(link.heading - prevHeadingsByPanoId[panorama.pano]) % 360;
                 let  distance = phi > 180 ? 360 - phi : phi;
                 if (distance < distanceFromTargetAngle) {
                     distanceFromTargetAngle = distance;
-                    nextLink = panorama.getLinks()[link];
+                    nextLink = link;
                 }
-            }
+            })
         }
 
         prevHeadingsByPanoId = [];
         for (const i in panorama.getLinks()) {
             prevHeadingsByPanoId[panorama.getLinks()[i].pano] = panorama.getLinks()[i].heading;
         }
+
+        //If going down a road (only two arrows) continue down road. When get to junction stop to allow user input
+        // and allow user input once more when moving away from junction.
         if(speedMode && panorama.getLinks().length < 3  && moveSpeedMode <= 20 && leftJunction) {
             await positionChanged();
             setTimeout(function(){
                 panorama.setPano(nextLink.pano);
             }, 1000);
             moveSpeedMode += 1;
+            $("#speedModeCount-cell").text(moveSpeedMode);
+            enableArrows = false;
         } else if (panorama.getLinks().length > 2){
             leftJunction = false;
+            enableArrows = true;
         } else if (panorama.getLinks().length < 3) {
             leftJunction = true;
         }
@@ -125,13 +107,27 @@ function initPano(listener) {
 
 
 $(document).on('keypress',function(e) {
-    console.log(e)
-    if (e.which === 112 ) {
-        submitted = true;
-    }
-    if(e.which === 105) {
-        moveSpeedMode = 0;
-        speedMode = !speedMode;
+    switch (e.key) {
+        case ("p"):
+            submitted = true;
+            return;
+        case ("i"):
+            speedMode = !speedMode;
+            $("#speedMode-cell").text(speedMode);
+            return;
+        case ("r"):
+            moveSpeedMode = 0;
+            $("#speedModeCount-cell").text(moveSpeedMode);
+            return;
+        case ("1"):
+            toggleElement("#passPathNum-row");
+            return;
+        case ("2"):
+            toggleElement("#passPathRoute-row");
+            return;
+        case ("k"):
+            toggleElement("path");
+            return;
     }
 });
 
@@ -143,9 +139,9 @@ function getHeading(prevPoint, currPoint) {
 }
 
 function getTurnQuadrant(angle) {
-    let quandrant = Math.floor(angle/45);
+    let quadrant = Math.floor(angle/45);
 
-    switch (quandrant) {
+    switch (quadrant) {
         case(0) :
             return "NNE";
         case(1) :
@@ -165,4 +161,23 @@ function getTurnQuadrant(angle) {
         default:
             return null;
     }
+}
+
+function toggleElement(element, state) {
+    if (typeof state !== "undefined") {
+        $(element).toggleClass("hidden", !state);
+    } else {
+        $(element).toggleClass("hidden");
+    }
+}
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function hideArrows() {
+    toggleElement("path", false);
+}
+
+function showArrows() {
+    toggleElement("path", true);
 }
