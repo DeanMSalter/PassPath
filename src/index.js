@@ -1,4 +1,4 @@
-let submitted = false;
+let continueTracking = false;
 let speedMode = false;
 let pointsVisited = [];
 let panorama;
@@ -8,6 +8,12 @@ let lastCheckpoint;
 let passPathString = "";
 let passPathNum = "";
 let enableArrows = true;
+let startPoint;
+let endPoint;
+const testStartPoint = { lat: 50.79453657114883, lng: -1.097003957709272 };
+const testEndPoint = { lat: 50.79209004265288, lng: -1.100222452185947 };
+let started = false;
+let finished = false;
 
 $(document).on("DOMNodeInserted", "path", function() {
     if (!speedMode) {
@@ -15,12 +21,13 @@ $(document).on("DOMNodeInserted", "path", function() {
     } else if (!enableArrows && speedMode) {
         hideArrows();
     }
-    if (!speedMode) {
+    if (!speedMode && !finished) {
         sleep(1000).then(showArrows);
     }
 });
 
 function initPano(listener) {
+    enableInteraction();
     let prevHeadingsByPanoId = [];
     panorama = new google.maps.StreetViewPanorama(
         document.getElementById("pano"),
@@ -30,21 +37,23 @@ function initPano(listener) {
             visible: true,
             clickToGo: false,
             scrollwheel: false,
-            fullscreenControl: false
+            fullscreenControl: false,
+            keyboardShortcuts: false
         }
     );
 
     async function positionChanged() {
-        if (submitted) {
+        if (finished || !started) {
             return;
         }
-
         let latLng = {
             lat : panorama.getPosition().lat(),
             lng : panorama.getPosition().lng(),
         };
+        if (!startPoint) {
+            startPoint = latLng;
+        }
         pointsVisited.push(latLng);
-
         if (!lastCheckpoint) {
             lastCheckpoint = latLng;
             return;
@@ -66,19 +75,23 @@ function initPano(listener) {
     panorama.addListener("position_changed", positionChanged);
 
     panorama.addListener("links_changed", async function() {
+        if (finished) {
+            return;
+        }
+
         const links = panorama.getLinks();
         let nextLink;
         if(speedMode ) {
             //angles will be calculated from 0 - 180 in closeness so 181 will always be overridden.
             let distanceFromTargetAngle = 181;
-            links.every(function(link) {
-                let  phi = Math.abs(link.heading - prevHeadingsByPanoId[panorama.pano]) % 360;
+            for (let i = 0; i < links.length; i++) {
+                let  phi = Math.abs(links[i].heading - prevHeadingsByPanoId[panorama.pano]) % 360;
                 let  distance = phi > 180 ? 360 - phi : phi;
                 if (distance < distanceFromTargetAngle) {
                     distanceFromTargetAngle = distance;
-                    nextLink = link;
+                    nextLink = links[i];
                 }
-            })
+            }
         }
 
         prevHeadingsByPanoId = [];
@@ -88,8 +101,8 @@ function initPano(listener) {
 
         //If going down a road (only two arrows) continue down road. When get to junction stop to allow user input
         // and allow user input once more when moving away from junction.
-        if(speedMode && panorama.getLinks().length < 3  && moveSpeedMode <= 20 && leftJunction) {
-            await positionChanged();
+        if(speedMode && panorama.getLinks().length < 3  && moveSpeedMode < 20 && leftJunction) {
+            // await positionChanged();
             setTimeout(function(){
                 panorama.setPano(nextLink.pano);
             }, 1000);
@@ -101,19 +114,22 @@ function initPano(listener) {
             enableArrows = true;
         } else if (panorama.getLinks().length < 3) {
             leftJunction = true;
+            enableArrows = true;
+        } else if (moveSpeedMode >= 20) {
+            enableArrows = true;
         }
     });
 }
 
-
 $(document).on('keypress',function(e) {
     switch (e.key) {
-        case ("p"):
-            submitted = true;
-            return;
         case ("i"):
             speedMode = !speedMode;
+            sleep(1000).then(showArrows)
             $("#speedMode-cell").text(speedMode);
+            return;
+        case ("`") :
+            toggleElement("#floating-panel");
             return;
         case ("r"):
             moveSpeedMode = 0;
@@ -128,9 +144,32 @@ $(document).on('keypress',function(e) {
         case ("k"):
             toggleElement("path");
             return;
+        case ("f"):
+            finish();
+            return;
+        case ("Enter"):
+            if (!started) {
+                $("#floating-panel").css("background-color", "green");
+                started = true;
+            } else if(!finished) {
+                $("#floating-panel").css("background-color", "red");
+                sleep(1000).then(hideArrows);
+                disableInteraction();
+                finished = true;
+            }
+            return;
     }
 });
 
+function finish() {
+    let testStartPointGoogleFormat = new google.maps.LatLng(testStartPoint.lat, testStartPoint.lng);
+    let startPointGoogleFormat = new google.maps.LatLng(startPoint.lat, startPoint.lng);
+    let distanceBetweenStartPoints = google.maps.geometry.spherical.computeDistanceBetween(testStartPointGoogleFormat, startPointGoogleFormat);
+    console.log(testStartPointGoogleFormat);
+    console.log(testStartPoint);
+    console.log(startPoint);
+    console.log(distanceBetweenStartPoints)
+}
 function getHeading(prevPoint, currPoint) {
     let point1 = new google.maps.LatLng(prevPoint.lat, prevPoint.lng);
     let point2 = new google.maps.LatLng(currPoint.lat, currPoint.lng);
@@ -178,6 +217,13 @@ function hideArrows() {
     toggleElement("path", false);
 }
 
+function disableInteraction() {
+    document.activeElement.blur();
+    toggleElement("#overlay", true)
+}
+function enableInteraction() {
+    toggleElement("#overlay", false)
+}
 function showArrows() {
     toggleElement("path", true);
 }

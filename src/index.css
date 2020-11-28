@@ -53,3 +53,9 @@ body {
 .disableMovement {
     display: none;
 }
+#overlay {
+    z-index: 1000;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
