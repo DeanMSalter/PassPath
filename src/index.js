@@ -6,6 +6,7 @@ let moveSpeedMode = 0;
 let leftJunction = true;
 let lastCheckpoint;
 let passPathString = "";
+let passPathQuadrant = "";
 let passPathNum = "";
 let enableArrows = true;
 let startPoint;
@@ -14,7 +15,9 @@ const testStartPoint = { lat: 50.79453657114883, lng: -1.097003957709272 };
 const testEndPoint = { lat: 50.79209004265288, lng: -1.100222452185947 };
 let started = false;
 let finished = false;
-
+let startTime;
+let finishTime;
+let userName = "";
 $(document).on("DOMNodeInserted", "path", function() {
     if (!speedMode) {
         hideArrows();
@@ -27,7 +30,6 @@ $(document).on("DOMNodeInserted", "path", function() {
 });
 
 function initPano(listener) {
-    enableInteraction();
     let prevHeadingsByPanoId = [];
     panorama = new google.maps.StreetViewPanorama(
         document.getElementById("pano"),
@@ -43,13 +45,16 @@ function initPano(listener) {
     );
 
     async function positionChanged() {
-        if (finished || !started) {
-            return;
-        }
         let latLng = {
             lat : panorama.getPosition().lat(),
             lng : panorama.getPosition().lng(),
         };
+        if (finished || !started) {
+            if (!endPoint) {
+                endPoint = latLng;
+            }
+            return;
+        }
         if (!startPoint) {
             startPoint = latLng;
         }
@@ -58,10 +63,11 @@ function initPano(listener) {
             lastCheckpoint = latLng;
             return;
         }
-
         let movementHeading = getHeading(lastCheckpoint, latLng);
         let movementCompassQuad = getTurnQuadrant(movementHeading);
+        let movementQuadrant =  Math.floor(movementHeading/45);
         passPathString += movementCompassQuad + ", ";
+        passPathQuadrant += movementQuadrant + ", ";
         passPathNum += movementHeading.toString() + " ";
 
         $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
@@ -119,6 +125,25 @@ function initPano(listener) {
             enableArrows = true;
         }
     });
+
+    $("#startFinishBtn").click(function() {
+        toggleButtonPressed();
+    });
+
+    $("#userNameSubmit").on("click" , function(){
+        let userNameLocal = $("#userName").val();
+        if (!userNameLocal) {
+            alert("Please enter a username");
+        } else {
+            userName = userNameLocal;
+            toggleElement("#userNameSubmit", false);
+            toggleElement("#startFinishBtn", true);
+            toggleElement("#userName", false);
+            $("#userNameDisplay").text("userName: " + userName);
+            toggleElement("#userNameDisplay", true);
+            enableInteraction()
+        }
+    });
 }
 
 $(document).on('keypress',function(e) {
@@ -144,23 +169,34 @@ $(document).on('keypress',function(e) {
         case ("k"):
             toggleElement("path");
             return;
-        case ("f"):
-            finish();
-            return;
         case ("Enter"):
-            if (!started) {
-                $("#floating-panel").css("background-color", "green");
-                started = true;
-            } else if(!finished) {
-                $("#floating-panel").css("background-color", "red");
-                sleep(1000).then(hideArrows);
-                disableInteraction();
-                finished = true;
-            }
+            toggleButtonPressed();
             return;
     }
 });
 
+function toggleButtonPressed() {
+    if (!started) {
+        $("#floating-panel").css("background-color", "green");
+        showNotification("Started Recording PassPath");
+        $("#startFinishBtn").css("background-color", "red");
+        $("#startFinishBtn").val("Finish");
+        started = true;
+        startTime = new Date();
+    } else if(!finished) {
+        $("#floating-panel").css("background-color", "red");
+        $("#startFinishBtn").css("background-color", "gold");
+        showNotification("PassPath Submitted");
+        $("#startFinishBtn").val("Finished");
+        sleep(1000).then(hideArrows);
+        disableInteraction();
+        console.log(passPathString)
+        finished = true;
+        finishTime = new Date();
+        finish();
+
+    }
+}
 function finish() {
     let testStartPointGoogleFormat = new google.maps.LatLng(testStartPoint.lat, testStartPoint.lng);
     let startPointGoogleFormat = new google.maps.LatLng(startPoint.lat, startPoint.lng);
@@ -168,8 +204,36 @@ function finish() {
     console.log(testStartPointGoogleFormat);
     console.log(testStartPoint);
     console.log(startPoint);
-    console.log(distanceBetweenStartPoints)
+    console.log(distanceBetweenStartPoints);
+    console.log((finishTime - startTime) / 1000);
+    let data = {
+        userName: userName,
+        passPath: passPathString,
+        passPathQuadrant: passPathQuadrant,
+        startLat: startPoint.lat,
+        startLng: startPoint.lng,
+        endLat: endPoint.lat,
+        endLng: endPoint.lng,
+        timeTaken : (finishTime - startTime) / 1000,
+        functionName : "insertUser",
+    };
+
+    ajaxRequest("user.php", "POST", data)
+        .then(function(response){
+            console.log(response)
+            data.functionName = "logAttempt";
+            ajaxRequest("user.php", "POST", data).then(function(response) {
+                console.log(response)
+            }).catch(function(response) {console.log(response)})
+        })
+        .catch(function(response){
+            response = JSON.parse(response);
+            if(response){
+                alert("error in checker if user exists");
+            }
+        });
 }
+
 function getHeading(prevPoint, currPoint) {
     let point1 = new google.maps.LatLng(prevPoint.lat, prevPoint.lng);
     let point2 = new google.maps.LatLng(currPoint.lat, currPoint.lng);
@@ -226,4 +290,36 @@ function enableInteraction() {
 }
 function showArrows() {
     toggleElement("path", true);
+}
+
+function showNotification(message, delay = 2000) {
+    $("#notifications").text(message);
+    toggleElement("#notifications", true);
+    sleep(delay).then(function() {
+        toggleElement("#notifications", false)
+    });
+}
+
+
+function ajaxRequest(url , method, data){
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: url,
+            method: method,
+            data: data,
+            success: function (response) {
+                // console.log(response);
+                // console.log(url);
+                // console.log(data);
+                resolve(response);
+            },
+            error: function (response) {
+                // console.log(response);
+                // console.log(url);
+                // console.log(data);
+
+                reject(response);
+            }
+        });
+    });
 }

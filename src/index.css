@@ -40,7 +40,7 @@ body {
 #floating-panel {
     position: absolute;
     top: 10px;
-    left: 15%;
+    right: 15%;
     z-index: 5;
     background-color: #fff;
     padding: 5px;
@@ -54,8 +54,81 @@ body {
     display: none;
 }
 #overlay {
-    z-index: 1000;
+    z-index: 10;
     height: 100%;
     width: 100%;
     position: absolute;
+}
+#startFinishBtn {
+    position: absolute;
+    background-color: green;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 3em;
+    top: 10px;
+    left: 15%;
+    z-index: 5;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+}
+#notifications {
+    position: absolute;
+    left: 20%;
+    background-color: rgba(123, 124, 128, 0.54);
+    padding: 20px;
+    width: 60%;
+    height: fit-content;
+    font-size: 3em;
+    top: 10%;
+    z-index: 10;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+}
+
+#userName{
+    position: absolute;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 3em;
+    top: 10px;
+    left: 30%;
+    z-index: 11;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+}
+
+#userNameSubmit {
+    position: absolute;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 3em;
+    top: 10px;
+    left: 15%;
+    z-index: 11;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+}
+#userNameDisplay {
+    position: absolute;
+    padding: 20px;
+    background-color: rgba(123, 124, 128, 0.54);
+    height: fit-content;
+    width: fit-content;
+    font-size: 3em;
+    top: 10px;
+    right: 5%;
+    z-index: 11;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
 }
