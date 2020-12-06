@@ -5,8 +5,8 @@ let panorama;
 let moveSpeedMode = 0;
 let leftJunction = true;
 let lastCheckpoint;
-let passPathString = "";
-let passPathQuadrant = "";
+let passPathString = [];
+let passPathQuadrant = [];
 let passPathNum = "";
 let enableArrows = true;
 let startPoint;
@@ -18,6 +18,9 @@ let finished = false;
 let startTime;
 let finishTime;
 let userName = "";
+let latLng = {};
+;
+
 $(document).on("DOMNodeInserted", "path", function() {
     if (!speedMode) {
         hideArrows();
@@ -45,30 +48,21 @@ function initPano(listener) {
     );
 
     async function positionChanged() {
-        let latLng = {
+        latLng = {
             lat : panorama.getPosition().lat(),
             lng : panorama.getPosition().lng(),
         };
         if (finished || !started) {
-            if (!endPoint) {
-                endPoint = latLng;
-            }
-            return;
-        }
-        if (!startPoint) {
             startPoint = latLng;
-        }
-        pointsVisited.push(latLng);
-        if (!lastCheckpoint) {
             lastCheckpoint = latLng;
             return;
         }
+        pointsVisited.push(latLng);
         let movementHeading = getHeading(lastCheckpoint, latLng);
         let movementCompassQuad = getTurnQuadrant(movementHeading);
         let movementQuadrant =  Math.floor(movementHeading/45);
-        passPathString += movementCompassQuad + ", ";
-        passPathQuadrant += movementQuadrant + ", ";
-        passPathNum += movementHeading.toString() + " ";
+        passPathString.push(movementCompassQuad);
+        passPathQuadrant.push( movementQuadrant);
 
         $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
         $("#passPathStr-cell").text(passPathString);
@@ -193,6 +187,9 @@ function toggleButtonPressed() {
         console.log(passPathString)
         finished = true;
         finishTime = new Date();
+        if (!endPoint) {
+            endPoint = latLng;
+        }
         finish();
 
     }
@@ -201,11 +198,6 @@ function finish() {
     let testStartPointGoogleFormat = new google.maps.LatLng(testStartPoint.lat, testStartPoint.lng);
     let startPointGoogleFormat = new google.maps.LatLng(startPoint.lat, startPoint.lng);
     let distanceBetweenStartPoints = google.maps.geometry.spherical.computeDistanceBetween(testStartPointGoogleFormat, startPointGoogleFormat);
-    console.log(testStartPointGoogleFormat);
-    console.log(testStartPoint);
-    console.log(startPoint);
-    console.log(distanceBetweenStartPoints);
-    console.log((finishTime - startTime) / 1000);
     let data = {
         userName: userName,
         passPath: passPathString,
@@ -217,14 +209,19 @@ function finish() {
         timeTaken : (finishTime - startTime) / 1000,
         functionName : "insertUser",
     };
-
+    console.log(data);
     ajaxRequest("user.php", "POST", data)
         .then(function(response){
             console.log(response)
-            data.functionName = "logAttempt";
-            ajaxRequest("user.php", "POST", data).then(function(response) {
-                console.log(response)
-            }).catch(function(response) {console.log(response)})
+            response = JSON.parse(response);
+            console.log(response.userAlreadyExists)
+            if (response.userAlreadyExists) {
+                data.functionName = "logAttempt";
+                console.log("add attempt")
+                ajaxRequest("user.php", "POST", data).then(function(response) {
+                    console.log(response)
+                }).catch(function(response) {console.log(response)})
+            }
         })
         .catch(function(response){
             response = JSON.parse(response);
