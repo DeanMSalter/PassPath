@@ -2,10 +2,13 @@ CREATE TABLE user (
 	userName VARCHAR(30) NOT NULL PRIMARY KEY,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
+	pointsVisited LONGTEXT NOT NULL,
 	startLat DECIMAL(11,8) NOT NULL,
 	startLng DECIMAL(11,8) NOT NULL,
 	endLat DECIMAL(11,8) NOT NULL,
 	endLng DECIMAL(11,8) NOT NULL,
+	totalDistanceTravelled DECIMAL(5,2) NOT NULL,
+	timeTaken INT(6) NOT NULL,
 	createdStamp TIMESTAMP NOT NULL
 );	
 
@@ -14,12 +17,17 @@ CREATE TABLE attempt (
 	userName VARCHAR(30) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
+	pointsVisited LONGTEXT NOT NULL,
 	startLat DECIMAL(11,8) NOT NULL,
 	startLng DECIMAL(11,8) NOT NULL,
 	endLat DECIMAL(11,8) NOT NULL,
 	endLng DECIMAL(11,8) NOT NULL,
+	totalDistanceTravelled DECIMAL(5,2) NOT NULL,
+	similarityArray LONGTEXT NOT NULL,
 	similarity DECIMAL(5,2) NOT NULL, 
-	timeTaken INT(6)NOT NULL,
+	distanceFromStart DECIMAL(5,2) NOT NULL,
+	distanceFromEnd DECIMAL(5,2) NOT NULL,
+	timeTaken INT(6) NOT NULL,
 	createdStamp TIMESTAMP NOT NULL,
 	FOREIGN KEY (userName) REFERENCES user(userName)
 );	

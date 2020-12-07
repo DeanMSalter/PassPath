@@ -1,26 +1,26 @@
-let continueTracking = false;
 let speedMode = false;
 let pointsVisited = [];
 let panorama;
-let moveSpeedMode = 0;
+let speedModeMoves = 0;
 let leftJunction = true;
 let lastCheckpoint;
 let passPathString = [];
 let passPathQuadrant = [];
-let passPathNum = "";
 let enableArrows = true;
 let startPoint;
 let endPoint;
-const testStartPoint = { lat: 50.79453657114883, lng: -1.097003957709272 };
-const testEndPoint = { lat: 50.79209004265288, lng: -1.100222452185947 };
 let started = false;
 let finished = false;
 let startTime;
 let finishTime;
 let userName = "";
 let latLng = {};
-;
+let userNameSubmitted = false;
+let totalDistanceTravelled = 0;
+const maxSpeedModeMoves = 20;
 
+//Everytime new arrows are loaded hide them, if not speed mode show them after a second.
+//This is to prevent a problem with double clicking firing multiple pos change events.
 $(document).on("DOMNodeInserted", "path", function() {
     if (!speedMode) {
         hideArrows();
@@ -52,11 +52,22 @@ function initPano(listener) {
             lat : panorama.getPosition().lat(),
             lng : panorama.getPosition().lng(),
         };
+
+        //Everytime the user moves store the new pos as startpoint so that when they "start" the startpoint is the current Pos.
         if (finished || !started) {
             startPoint = latLng;
             lastCheckpoint = latLng;
             return;
         }
+
+        //Get distance between points so we know how long the pass path is.
+        //Cannot compare end and start point as that would compare "as the crow flies" not the actual length
+        let currentPointGoogle = new google.maps.LatLng(latLng.lat, latLng.lng);
+        let lastCheckpointGoogle = new google.maps.LatLng(lastCheckpoint.lat, lastCheckpoint.lng);
+        let distanceFromLastPoint = google.maps.geometry.spherical.computeDistanceBetween (currentPointGoogle, lastCheckpointGoogle);
+        totalDistanceTravelled += distanceFromLastPoint;
+
+        //Store all points visited aswell as the textual heading and numerical quadrant for future analysis
         pointsVisited.push(latLng);
         let movementHeading = getHeading(lastCheckpoint, latLng);
         let movementCompassQuad = getTurnQuadrant(movementHeading);
@@ -64,11 +75,8 @@ function initPano(listener) {
         passPathString.push(movementCompassQuad);
         passPathQuadrant.push( movementQuadrant);
 
-        $("#route-cell").text($("#route-cell").text() + movementHeading.toFixed(1) + "(" + movementCompassQuad + ")" + " , ");
-        $("#passPathStr-cell").text(passPathString);
-        $("#passPathNum-cell").text(passPathNum);
-
-
+        //Display distance travelled to user so they understand if told passPath is too short.
+        $("#distanceTravelled-cell").text(totalDistanceTravelled.toFixed(2));
         lastCheckpoint = latLng;
     }
 
@@ -81,6 +89,8 @@ function initPano(listener) {
 
         const links = panorama.getLinks();
         let nextLink;
+
+        //Speedmode essentially takes the user down a straight path by calculating which arrow has the closest heading compared to the previous one.
         if(speedMode ) {
             //angles will be calculated from 0 - 180 in closeness so 181 will always be overridden.
             let distanceFromTargetAngle = 181;
@@ -101,13 +111,13 @@ function initPano(listener) {
 
         //If going down a road (only two arrows) continue down road. When get to junction stop to allow user input
         // and allow user input once more when moving away from junction.
-        if(speedMode && panorama.getLinks().length < 3  && moveSpeedMode < 20 && leftJunction) {
+        if(speedMode && panorama.getLinks().length < 3  && speedModeMoves < maxSpeedModeMoves && leftJunction) {
             // await positionChanged();
             setTimeout(function(){
                 panorama.setPano(nextLink.pano);
             }, 1000);
-            moveSpeedMode += 1;
-            $("#speedModeCount-cell").text(moveSpeedMode);
+            speedModeMoves += 1;
+            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
             enableArrows = false;
         } else if (panorama.getLinks().length > 2){
             leftJunction = false;
@@ -115,7 +125,7 @@ function initPano(listener) {
         } else if (panorama.getLinks().length < 3) {
             leftJunction = true;
             enableArrows = true;
-        } else if (moveSpeedMode >= 20) {
+        } else if (speedModeMoves >= 20) {
             enableArrows = true;
         }
     });
@@ -125,7 +135,7 @@ function initPano(listener) {
     });
 
     $("#userNameSubmit").on("click" , function(){
-        let userNameLocal = $("#userName").val();
+        let userNameLocal = $("#userName").val()?.toUpperCase();
         if (!userNameLocal) {
             alert("Please enter a username");
         } else {
@@ -133,29 +143,41 @@ function initPano(listener) {
             toggleElement("#userNameSubmit", false);
             toggleElement("#startFinishBtn", true);
             toggleElement("#userName", false);
-            $("#userNameDisplay").text("userName: " + userName);
+            $("#userNameDisplay").text("Name: " + userName);
             toggleElement("#userNameDisplay", true);
             enableInteraction()
+            userNameSubmitted = true;
         }
     });
+    $("#retryBtn").on("click", function() {
+        location.reload();
+        return false;
+    });
+    $("#resetBtn").on("click", function() {
+        reset();
+    })
 }
 
 $(document).on('keypress',function(e) {
     switch (e.key) {
         case ("i"):
             speedMode = !speedMode;
-            sleep(1000).then(showArrows)
-            $("#speedMode-cell").text(speedMode);
+            speedModeMoves = 0;
+            sleep(1000).then(showArrows);
+            if (speedMode) {
+                $("#speedMode-cell").text("Enabled");
+                $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
+            } else {
+                $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
+                $("#speedMode-cell").text("Disabled");
+            }
             return;
         case ("`") :
             toggleElement("#floating-panel");
             return;
-        case ("r"):
-            moveSpeedMode = 0;
-            $("#speedModeCount-cell").text(moveSpeedMode);
-            return;
-        case ("1"):
-            toggleElement("#passPathNum-row");
+        case ("l"):
+            speedModeMoves = 0;
+            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
             return;
         case ("2"):
             toggleElement("#passPathRoute-row");
@@ -164,21 +186,27 @@ $(document).on('keypress',function(e) {
             toggleElement("path");
             return;
         case ("Enter"):
-            toggleButtonPressed();
+            if (userNameSubmitted) {
+                toggleButtonPressed();
+            }
             return;
     }
 });
 
 function toggleButtonPressed() {
     if (!started) {
-        $("#floating-panel").css("background-color", "green");
         showNotification("Started Recording PassPath");
         $("#startFinishBtn").css("background-color", "red");
         $("#startFinishBtn").val("Finish");
+        toggleElement("#resetBtn", true);
         started = true;
         startTime = new Date();
     } else if(!finished) {
-        $("#floating-panel").css("background-color", "red");
+        if (pointsVisited.length < 5 || totalDistanceTravelled < 20) {
+            alert("passPath not long enough!");
+            return;
+        }
+
         $("#startFinishBtn").css("background-color", "gold");
         showNotification("PassPath Submitted");
         $("#startFinishBtn").val("Finished");
@@ -194,18 +222,18 @@ function toggleButtonPressed() {
 
     }
 }
+
 function finish() {
-    let testStartPointGoogleFormat = new google.maps.LatLng(testStartPoint.lat, testStartPoint.lng);
-    let startPointGoogleFormat = new google.maps.LatLng(startPoint.lat, startPoint.lng);
-    let distanceBetweenStartPoints = google.maps.geometry.spherical.computeDistanceBetween(testStartPointGoogleFormat, startPointGoogleFormat);
     let data = {
         userName: userName,
         passPath: passPathString,
         passPathQuadrant: passPathQuadrant,
+        pointsVisited : JSON.stringify(pointsVisited),
         startLat: startPoint.lat,
         startLng: startPoint.lng,
         endLat: endPoint.lat,
         endLng: endPoint.lng,
+        totalDistanceTravelled: totalDistanceTravelled,
         timeTaken : (finishTime - startTime) / 1000,
         functionName : "insertUser",
     };
@@ -214,16 +242,22 @@ function finish() {
         .then(function(response){
             console.log(response)
             response = JSON.parse(response);
-            console.log(response.userAlreadyExists)
             if (response.userAlreadyExists) {
                 data.functionName = "logAttempt";
-                console.log("add attempt")
                 ajaxRequest("user.php", "POST", data).then(function(response) {
+                    response = JSON.parse(response);
+                    if (response.successfulAttempt) {
+                        alert("logged In!")
+                    } else {
+                        alert("Incorrect PassPath");
+                        toggleElement("#retryBtn", true);
+                    }
                     console.log(response)
                 }).catch(function(response) {console.log(response)})
             }
         })
         .catch(function(response){
+            console.log(response)
             response = JSON.parse(response);
             if(response){
                 alert("error in checker if user exists");
@@ -270,6 +304,7 @@ function toggleElement(element, state) {
         $(element).toggleClass("hidden");
     }
 }
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -282,9 +317,11 @@ function disableInteraction() {
     document.activeElement.blur();
     toggleElement("#overlay", true)
 }
+
 function enableInteraction() {
     toggleElement("#overlay", false)
 }
+
 function showArrows() {
     toggleElement("path", true);
 }
@@ -296,7 +333,6 @@ function showNotification(message, delay = 2000) {
         toggleElement("#notifications", false)
     });
 }
-
 
 function ajaxRequest(url , method, data){
     return new Promise((resolve, reject) => {
@@ -319,4 +355,35 @@ function ajaxRequest(url , method, data){
             }
         });
     });
+}
+
+function reset() {
+    let startPointGoogle = new google.maps.LatLng(startPoint.lat, startPoint.lng);
+    panorama.setPosition(startPointGoogle)
+
+    speedMode = false;
+    pointsVisited = [];
+    speedModeMoves = 0;
+    leftJunction = true;
+    lastCheckpoint = null;
+    passPathString = [];
+    passPathQuadrant = [];
+    enableArrows = true;
+    startPoint = null;
+    endPoint = null;
+    started = false;
+    finished = false;
+    startTime = null;
+    finishTime = null;
+    latLng = {};
+    userNameSubmitted = true;
+    totalDistanceTravelled = 0;
+
+    $("#speedMode-cell").text("Disabled");
+    $("#speedModeCount-cell").text("20");
+    $("#distanceTravelled-cell").text("0");
+    $("#startFinishBtn").css("background-color", "green");
+    $("#startFinishBtn").val("Start");
+    toggleElement("#resetBtn", false);
+    toggleElement("#retryBtn", false);
 }

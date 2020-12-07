@@ -1,45 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Street View Events</title>
-    <link rel="stylesheet" href="index.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initPano&libraries=&v=weekly" defer></script>
-    <script src="index.js"></script>
+    <head>
+        <title>Street View Events</title>
+        <link rel="stylesheet" href="index.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initPano&libraries=&v=weekly" defer></script>
+        <script src="index.js"></script>
 
-</head>
-<body>
-<div id="overlay"></div>
-<div id="pano"></div>
-<div id="floating-panel" class="hidden">
-    <table>
-        <tr id="passPathRoute-row" class="hidden">
-            <td><b>Route</b></td>
-            <td id="route-cell"> </td>
-        </tr>
-        <tr>
-            <td><b>PassPathStr</b></td>
-            <td id="passPathStr-cell"> </td>
-        </tr>
-        <tr id="passPathNum-row" class="hidden">
-            <td><b>PassPathNum?</b></td>
-            <td id="passPathNum-cell"> </td>
-        </tr>
-        <tr id="speedMode-row">
-            <td><b>SpeedMode Enabled</b></td>
-            <td id="speedMode-cell"> </td>
-        </tr>
-        <tr id="speedModeCount-row">
-            <td><b>SpeedMode Count</b></td>
-            <td id="speedModeCount-cell"> </td>
-        </tr>
-    </table>
-</div>
-<div id="notifications" class="hidden"></div>
-<input type="button" title="(Enter)" class="hidden" id="startFinishBtn" value="Start">
-<input type="text" id="userName" placeholder="userName"/>
-<input type="button" id="userNameSubmit" value="Enter"/>
-<div id="userNameDisplay" class="hidden"></div>
-</body>
+    </head>
+    <body>
+        <div id="overlay"></div>
+        <div id="pano"></div>
+        <div id="floating-panel">
+            <table>
+                <tr id="speedMode-row">
+                    <td><b>SpeedMode Enabled (Toggle with I)</b></td>
+                    <td id="speedMode-cell">Disabled</td>
+                </tr>
+                <tr id="speedModeCount-row">
+                    <td><b>SpeedMode moves left (Reset with L)</b></td>
+                    <td id="speedModeCount-cell">20</td>
+                </tr>
+                <tr id="distanceTravelled-row">
+                    <td><b>Distance Travelled</b></td>
+                    <td id="distanceTravelled-cell">0</td>
+                </tr>
+            </table>
+        </div>
+        <div id="notifications" class="hidden"></div>
+        <input type="button" title="(Enter)" class="hidden" id="startFinishBtn" value="Start">
+        <input type="text" id="userName" placeholder="Name"/>
+        <input type="button" id="userNameSubmit" value="Enter"/>
+        <input type="button" id="retryBtn" value="Retry" class="hidden"/>
+        <input type="button" id="resetBtn" value="Reset" class="hidden"/>
+        <div id="userNameDisplay" class="hidden"></div>
+    </body>
 </html>
