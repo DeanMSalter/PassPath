@@ -14,6 +14,7 @@ $endLng = (String) $_POST['endLng'];
 $totalDistanceTravelled = (String) $_POST['totalDistanceTravelled'];
 $createdStamp = date("Y-m-d H:i:s");
 $timeTaken = (String) $_POST['timeTaken'];
+$resetAttempt = (String) $_POST['resetAttempt'];
 
 if( !isset($_POST['functionName']) ) { $aResult['error'] = 'No function name!'; }
 
@@ -23,7 +24,7 @@ if( !isset($aResult['error']) ) {
             insertUser($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
             break;
         case 'logAttempt':
-            logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
+            logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp);
             break;
         default:
             $aResult['error'] = 'Not found function '.$_POST['functionname'].'!';
@@ -67,7 +68,7 @@ function insertUser($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
     }
 }
 
-function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp) {
+function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp) {
     try {
         if (userExists($userName)) {
             $similarityArray = array();
@@ -147,8 +148,11 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
             // --- log attempt values ---
             $insertUserStmt = $mysqli->prepare("INSERT INTO attempt (username, passPath, passPathQuadrant, pointsVisited, startLat, startLng, endLat,
                                                             endLng, totalDistanceTravelled, similarityArray, similarity, distanceFromStart, distanceFromEnd,
-                                                             timeTaken, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $insertUserStmt->bind_param('sssssssssssssss', $userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $createdStamp);
+                                                             timeTaken, resetAttempt, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $insertUserStmt->bind_param('ssssssssssssssss', $userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $resetAttempt, $createdStamp);
+            if (!$insertUserStmt->execute()) {
+                echo($insertUserStmt->error);
+            }
             $insertUserStmt->close();
             $mysqli->close();
 

@@ -2,6 +2,7 @@ let speedMode = false;
 let pointsVisited = [];
 let panorama;
 let speedModeMoves = 0;
+let speedModeMovesUsed = 0;
 let leftJunction = true;
 let lastCheckpoint;
 let passPathString = [];
@@ -17,8 +18,10 @@ let userName = "";
 let latLng = {};
 let userNameSubmitted = false;
 let totalDistanceTravelled = 0;
+let resetAttempt = false;
 const maxSpeedModeMoves = 20;
-
+const minPassPathDistance = 200;
+const minPointsVisited = 20;
 //Everytime new arrows are loaded hide them, if not speed mode show them after a second.
 //This is to prevent a problem with double clicking firing multiple pos change events.
 $(document).on("DOMNodeInserted", "path", function() {
@@ -27,12 +30,13 @@ $(document).on("DOMNodeInserted", "path", function() {
     } else if (!enableArrows && speedMode) {
         hideArrows();
     }
-    if (!speedMode && !finished) {
+    if (!speedMode && !finished && userNameSubmitted) {
         sleep(1000).then(showArrows);
     }
 });
 
 function initPano(listener) {
+    showNotification("Please enter your full name", -1);
     let prevHeadingsByPanoId = [];
     panorama = new google.maps.StreetViewPanorama(
         document.getElementById("pano"),
@@ -69,6 +73,7 @@ function initPano(listener) {
 
         //Store all points visited aswell as the textual heading and numerical quadrant for future analysis
         pointsVisited.push(latLng);
+        toggleElement("#resetBtn", true);
         let movementHeading = getHeading(lastCheckpoint, latLng);
         let movementCompassQuad = getTurnQuadrant(movementHeading);
         let movementQuadrant =  Math.floor(movementHeading/45);
@@ -117,6 +122,7 @@ function initPano(listener) {
                 panorama.setPano(nextLink.pano);
             }, 1000);
             speedModeMoves += 1;
+            speedModeMovesUsed += 1;
             $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
             enableArrows = false;
         } else if (panorama.getLinks().length > 2){
@@ -140,12 +146,14 @@ function initPano(listener) {
             alert("Please enter a username");
         } else {
             userName = userNameLocal;
+            toggleElement("#retryBtn", true);
             toggleElement("#userNameSubmit", false);
             toggleElement("#startFinishBtn", true);
             toggleElement("#userName", false);
             $("#userNameDisplay").text("Name: " + userName);
             toggleElement("#userNameDisplay", true);
-            enableInteraction()
+            enableInteraction();
+            showNotification("Press start when at the start of your desired PassPath", -1);
             userNameSubmitted = true;
         }
     });
@@ -198,32 +206,37 @@ function toggleButtonPressed() {
         showNotification("Started Recording PassPath");
         $("#startFinishBtn").css("background-color", "red");
         $("#startFinishBtn").val("Finish");
-        toggleElement("#resetBtn", true);
         started = true;
         startTime = new Date();
     } else if(!finished) {
-        if (pointsVisited.length < 5 || totalDistanceTravelled < 20) {
-            alert("passPath not long enough!");
+        if (pointsVisited.length < minPointsVisited || totalDistanceTravelled < minPassPathDistance) {
+            alert("passPath not long enough! Please travel at least " + minPassPathDistance + " metres");
             return;
         }
-
         $("#startFinishBtn").css("background-color", "gold");
         showNotification("PassPath Submitted");
         $("#startFinishBtn").val("Finished");
         sleep(1000).then(hideArrows);
         disableInteraction();
-        console.log(passPathString)
         finished = true;
-        finishTime = new Date();
-        if (!endPoint) {
-            endPoint = latLng;
-        }
         finish();
-
     }
 }
 
 function finish() {
+    toggleElement("#resetBtn", false);
+    if (logAttempt()) {
+       alert("logged In!")
+   }  else {
+       alert("Incorrect PassPath");
+   }
+}
+
+function logAttempt() {
+    finishTime = new Date();
+    if (!endPoint) {
+        endPoint = latLng;
+    }
     let data = {
         userName: userName,
         passPath: passPathString,
@@ -235,6 +248,7 @@ function finish() {
         endLng: endPoint.lng,
         totalDistanceTravelled: totalDistanceTravelled,
         timeTaken : (finishTime - startTime) / 1000,
+        resetAttempt: resetAttempt,
         functionName : "insertUser",
     };
     console.log(data);
@@ -245,14 +259,9 @@ function finish() {
             if (response.userAlreadyExists) {
                 data.functionName = "logAttempt";
                 ajaxRequest("user.php", "POST", data).then(function(response) {
-                    response = JSON.parse(response);
-                    if (response.successfulAttempt) {
-                        alert("logged In!")
-                    } else {
-                        alert("Incorrect PassPath");
-                        toggleElement("#retryBtn", true);
-                    }
                     console.log(response)
+                    response = JSON.parse(response);
+                    return response.successfulAttempt;
                 }).catch(function(response) {console.log(response)})
             }
         })
@@ -264,7 +273,6 @@ function finish() {
             }
         });
 }
-
 function getHeading(prevPoint, currPoint) {
     let point1 = new google.maps.LatLng(prevPoint.lat, prevPoint.lng);
     let point2 = new google.maps.LatLng(currPoint.lat, currPoint.lng);
@@ -319,6 +327,7 @@ function disableInteraction() {
 }
 
 function enableInteraction() {
+    showArrows();
     toggleElement("#overlay", false)
 }
 
@@ -329,9 +338,11 @@ function showArrows() {
 function showNotification(message, delay = 2000) {
     $("#notifications").text(message);
     toggleElement("#notifications", true);
-    sleep(delay).then(function() {
-        toggleElement("#notifications", false)
-    });
+    if (delay > -1) {
+        sleep(delay).then(function() {
+            toggleElement("#notifications", false)
+        });
+    }
 }
 
 function ajaxRequest(url , method, data){
@@ -341,16 +352,9 @@ function ajaxRequest(url , method, data){
             method: method,
             data: data,
             success: function (response) {
-                // console.log(response);
-                // console.log(url);
-                // console.log(data);
                 resolve(response);
             },
             error: function (response) {
-                // console.log(response);
-                // console.log(url);
-                // console.log(data);
-
                 reject(response);
             }
         });
@@ -358,9 +362,12 @@ function ajaxRequest(url , method, data){
 }
 
 function reset() {
+    resetAttempt = true;
+    logAttempt();
     let startPointGoogle = new google.maps.LatLng(startPoint.lat, startPoint.lng);
     panorama.setPosition(startPointGoogle)
 
+    speedModeMovesUsed = 0;
     speedMode = false;
     pointsVisited = [];
     speedModeMoves = 0;
@@ -378,6 +385,7 @@ function reset() {
     latLng = {};
     userNameSubmitted = true;
     totalDistanceTravelled = 0;
+    resetAttempt = false;
 
     $("#speedMode-cell").text("Disabled");
     $("#speedModeCount-cell").text("20");
@@ -385,5 +393,6 @@ function reset() {
     $("#startFinishBtn").css("background-color", "green");
     $("#startFinishBtn").val("Start");
     toggleElement("#resetBtn", false);
-    toggleElement("#retryBtn", false);
+    enableInteraction();
+    showNotification("Press start when at the start of your desired PassPath", -1);
 }

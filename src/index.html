@@ -1,39 +1,28 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Street View Events</title>
-        <link rel="stylesheet" href="index.css">
+        <title>PassPath Home</title>
+        <link rel="stylesheet" href="home.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initPano&libraries=&v=weekly" defer></script>
-        <script src="index.js"></script>
-
+        <script src="home.js"></script>
     </head>
     <body>
-        <div id="overlay"></div>
-        <div id="pano"></div>
-        <div id="floating-panel">
-            <table>
-                <tr id="speedMode-row">
-                    <td><b>SpeedMode Enabled (Toggle with I)</b></td>
-                    <td id="speedMode-cell">Disabled</td>
-                </tr>
-                <tr id="speedModeCount-row">
-                    <td><b>SpeedMode moves left (Reset with L)</b></td>
-                    <td id="speedModeCount-cell">20</td>
-                </tr>
-                <tr id="distanceTravelled-row">
-                    <td><b>Distance Travelled</b></td>
-                    <td id="distanceTravelled-cell">0</td>
-                </tr>
-            </table>
+        <h1 id="title">PassPath</h1>
+        <span id="titleSpan">A potential alternative to the traditional password system</span>
+        <div id="generalDesc">
+            PassPath asks the user to plot a route of their choosing, using google maps street view. <br>
+            Anywhere in the world.<br>
+            PassPath then stores this route as your way of authenticating with the given system. <br>
+            When that same user wants to access the system they simply need to repeat the route they initially gave the system.
         </div>
-        <div id="notifications" class="hidden"></div>
-        <input type="button" title="(Enter)" class="hidden" id="startFinishBtn" value="Start">
-        <input type="text" id="userName" placeholder="Name"/>
-        <input type="button" id="userNameSubmit" value="Enter"/>
-        <input type="button" id="retryBtn" value="Retry" class="hidden"/>
-        <input type="button" id="resetBtn" value="Reset" class="hidden"/>
-        <div id="userNameDisplay" class="hidden"></div>
+        <div id="featureExplination">
+            PassPath provides some helpful features to make interaction a little easier.
+            <br>
+            <br>
+            <img src="./backToStartBtn.png"/> - This button will take you back to the location where you clicked start and allow you to reposition the start of your PassPath.
+            <br>
+            <img src="./startAgainBtn.png"/> - This button will reset your PassPath attempt and allow you to enter a different name and a completely different PassPath. It does the same as refreshing the browser.
+        </div>
+        <a id="beginBtn" href="passPath.html"> Begin </a>
     </body>
 </html>
