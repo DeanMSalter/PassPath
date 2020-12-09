@@ -1,0 +1,117 @@
+body {
+    background-color: rgba(42, 54, 59, 0.9);
+}
+* {
+    font-family: Arial, Helvetica, sans-serif;
+}
+#wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+#title {
+    color: white;
+    align-self: stretch;
+    display: inline-block;
+    width: 100%;
+    height: fit-content;
+    text-align: center;
+    font-size: 3em;
+    margin: 0;
+}
+#titleSpan {
+    align-self: stretch;
+    display: inline-block;
+    color: white;
+    width: 100%;
+    height: fit-content;
+    text-align: center;
+    font-size: 2em;
+    font-style: italic;
+}
+#generalDesc {
+    align-self: stretch;
+    display: inline-block;
+    color: rgb(201, 202, 206);
+    width: 100%;
+    height: fit-content;
+    font-size: 1.5em;
+    padding-bottom: 2%;
+    text-align: left;
+}
+#featureExplination {
+    align-self: stretch;
+    display: inline-block;
+    color: white;
+    width: 100%;
+    height: fit-content;
+    font-size: 1.5em;
+    text-align: center;
+}
+#featureTable {
+    text-align: left;
+}
+#featureTable td {
+    padding: 1%;
+}
+#beginBtn {
+    align-self: stretch;
+    display: inline-block;
+    padding: 1%;
+    font-size: 3em;
+    height: fit-content;
+    width: fit-content;
+    border-radius: 10px;
+    text-decoration: none;
+    background-color: #EEEEEE;
+    color: #333333;
+    border-top: 1px solid #CCCCCC;
+    border-right: 1px solid #333333;
+    border-bottom: 1px solid #333333;
+    border-left: 1px solid #CCCCCC;
+    margin-left: 50%;
+}
+#retryBtn {
+    background-color: orange;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 2em;
+    text-align: center;
+    line-height: 30px;
+    border:2px solid #ccc;
+    font-family: "Roboto", "sans-serif";
+    border-radius: 15px;
+    -webkit-border-radius: 15px;
+}
+#resetBtn {
+    background-color: lightblue;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 2em;
+    z-index: 15;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+    border-radius: 15px;
+    -webkit-border-radius: 15px;
+}
+
+#speedModeBtnToggle {
+    background-color: gold;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 2em;
+    z-index: 15;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+    border-radius: 15px;
+    -webkit-border-radius: 15px;
+}

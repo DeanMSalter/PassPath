@@ -74,6 +74,7 @@ function initPano(listener) {
         //Store all points visited aswell as the textual heading and numerical quadrant for future analysis
         pointsVisited.push(latLng);
         toggleElement("#resetBtn", true);
+        toggleElement("#speedModeBtnToggle", true);
         let movementHeading = getHeading(lastCheckpoint, latLng);
         let movementCompassQuad = getTurnQuadrant(movementHeading);
         let movementQuadrant =  Math.floor(movementHeading/45);
@@ -164,22 +165,23 @@ function initPano(listener) {
     $("#resetBtn").on("click", function() {
         reset();
     })
+    $("#speedModeBtnToggle").on("click", function() {
+        speedMode = !speedMode;
+        speedModeMoves = 0;
+        sleep(1000).then(showArrows);
+        if (speedMode) {
+            $("#speedModeBtnToggle").val("Speed Mode - Enabled");
+            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
+        } else {
+            $("#speedModeBtnToggle").val("Speed Mode - Disabled");
+            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
+        }
+        return;
+    })
 }
 
 $(document).on('keypress',function(e) {
     switch (e.key) {
-        case ("i"):
-            speedMode = !speedMode;
-            speedModeMoves = 0;
-            sleep(1000).then(showArrows);
-            if (speedMode) {
-                $("#speedMode-cell").text("Enabled");
-                $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
-            } else {
-                $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
-                $("#speedMode-cell").text("Disabled");
-            }
-            return;
         case ("`") :
             toggleElement("#floating-panel");
             return;
@@ -225,6 +227,7 @@ function toggleButtonPressed() {
 
 function finish() {
     toggleElement("#resetBtn", false);
+    toggleElement("#speedModeBtnToggle", false);
     if (logAttempt()) {
        alert("logged In!")
    }  else {

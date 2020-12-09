@@ -2,27 +2,62 @@
 <html>
     <head>
         <title>PassPath Home</title>
-        <link rel="stylesheet" href="home.css">
+        <link rel="stylesheet" href="index.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script src="home.js"></script>
+        <script src="index.js"></script>
     </head>
     <body>
+    <div id="wrapper">
         <h1 id="title">PassPath</h1>
         <span id="titleSpan">A potential alternative to the traditional password system</span>
         <div id="generalDesc">
-            PassPath asks the user to plot a route of their choosing, using google maps street view. <br>
-            Anywhere in the world.<br>
-            PassPath then stores this route as your way of authenticating with the given system. <br>
-            When that same user wants to access the system they simply need to repeat the route they initially gave the system.
+            <p>
+                PassPath uses a path chosen by the user to authenticate them with the given system. <br>
+                It uses google maps street view api which provides a recognisable and comfortable environment to choose a route anywhere in the world. <br>
+                PassPath then stores this route as your way of authenticating with the given system. <br>
+                When that same user wants to access the system they simply need to repeat the route they initially gave the system.
+            </p>
         </div>
         <div id="featureExplination">
-            PassPath provides some helpful features to make interaction a little easier.
-            <br>
-            <br>
-            <img src="./backToStartBtn.png"/> - This button will take you back to the location where you clicked start and allow you to reposition the start of your PassPath.
-            <br>
-            <img src="./startAgainBtn.png"/> - This button will reset your PassPath attempt and allow you to enter a different name and a completely different PassPath. It does the same as refreshing the browser.
+
+
+            <table id="featureTable">
+                <tr>
+                    <td>
+                        <input type="button" id="resetBtn" value="Back To Start Location" class="hidden" placeholder="Go back to start point"/>
+                    </td>
+                    <td>
+                        Will take you back to the location where you clicked start and allow you to reposition the start of your PassPath.
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="button" id="retryBtn" value="Start again" class="hidden" placeholder="Retry entirely"/>
+
+                    </td>
+                    <td>
+                       Will reset your PassPath attempt and allow you to enter a different name and a completely different PassPath. It does the same as refreshing the browser.
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="button" id="speedModeBtnToggle" value="Speed Mode - Disabled" class="hidden" />
+                    </td>
+                    <td>
+                        Will toggle "Speed Mode" which will take you down a road until you meet a junction or until you run out of Speed Mode moves.
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="./floatingPanel.png"/>
+                    </td>
+                    <td>
+                        This section shows you how many metres you have travelled and how many Speed Mode moves you have left - You can reset the moves by pressing L.
+                    </td>
+                </tr>
+            </table>
         </div>
         <a id="beginBtn" href="passPath.html"> Begin </a>
+    </div>
     </body>
 </html>
