@@ -1,8 +1,6 @@
 let speedMode = false;
 let pointsVisited = [];
 let panorama;
-let speedModeMoves = 0;
-let speedModeMovesUsed = 0;
 let leftJunction = true;
 let lastCheckpoint;
 let passPathString = [];
@@ -19,7 +17,6 @@ let latLng = {};
 let userNameSubmitted = false;
 let totalDistanceTravelled = 0;
 let resetAttempt = false;
-const maxSpeedModeMoves = 20;
 const minPassPathDistance = 200;
 const minPointsVisited = 20;
 //Everytime new arrows are loaded hide them, if not speed mode show them after a second.
@@ -35,21 +32,70 @@ $(document).on("DOMNodeInserted", "path", function() {
     }
 });
 
-function initPano(listener) {
+let map;
+function initMap() {
     showNotification("Please enter your full name", -1);
-    let prevHeadingsByPanoId = [];
-    panorama = new google.maps.StreetViewPanorama(
-        document.getElementById("pano"),
-        {
-            //lat and lng outside union building
-            position: { lat: 50.794502, lng: -1.097004 },
-            visible: true,
-            clickToGo: false,
-            scrollwheel: false,
-            fullscreenControl: false,
-            keyboardShortcuts: false
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 20, lng: 0 },
+        zoom: 3,
+    });
+    $("#userNameSubmit").on("click" , function(){
+        let userNameLocal = $("#userName").val()?.toUpperCase();
+        if (!userNameLocal) {
+            alert("Please enter a username");
+        } else {
+            userName = userNameLocal.replace(/ /g , '');
+            toggleElement("#userNameSubmit", false);
+            toggleElement("#userName", false);
+            $("#userNameDisplay").text("Name: " + userName);
+            toggleElement("#userNameDisplay", true);
+            enableInteraction();
+            showNotification("Go to your desired location and enter street view (drag the orange person)", -1);
+
+            userNameSubmitted = true;
         }
-    );
+    });
+
+    panorama = map.getStreetView();
+    panorama.set("clickToGo", false);
+    panorama.set("scrollwheel", false);
+    panorama.set("fullscreenControl", false);
+    panorama.set("keyboardShortcuts", false);
+    panorama.set("enableCloseButton", false);
+
+    new google.maps.event.addListener(panorama, 'visible_changed', function(){
+        if (panorama.getVisible()) {
+            console.log("in street view")
+            initPano(panorama);
+            // Display your street view visible UI
+
+        } else {
+            console.log("not")
+            // Display your original UI
+
+        }
+    });
+    // map.addListener(thePanorama, 'visible_changed', function() {
+    //
+    //     if (thePanorama.getVisible()) {
+    //         console.log("in street view")
+    //         // Display your street view visible UI
+    //
+    //     } else {
+    //         console.log("not")
+    //         // Display your original UI
+    //
+    //     }
+    //
+    // });
+}
+
+function initPano(panorama) {
+    showNotification("Press start when at the start of your desired PassPath", -1);
+    toggleElement("#startFinishBtn", true);
+    toggleElement("#retryBtn", true);
+
+    let prevHeadingsByPanoId = [];
 
     async function positionChanged() {
         latLng = {
@@ -117,22 +163,18 @@ function initPano(listener) {
 
         //If going down a road (only two arrows) continue down road. When get to junction stop to allow user input
         // and allow user input once more when moving away from junction.
-        if(speedMode && panorama.getLinks().length < 3  && speedModeMoves < maxSpeedModeMoves && leftJunction) {
+        if(speedMode && panorama.getLinks().length < 3 && leftJunction) {
             // await positionChanged();
             setTimeout(function(){
-                panorama.setPano(nextLink.pano);
+                panorama?.setPano(nextLink.pano);
             }, 1000);
-            speedModeMoves += 1;
-            speedModeMovesUsed += 1;
-            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
             enableArrows = false;
         } else if (panorama.getLinks().length > 2){
             leftJunction = false;
             enableArrows = true;
+            toggleSpeedMode(false);
         } else if (panorama.getLinks().length < 3) {
             leftJunction = true;
-            enableArrows = true;
-        } else if (speedModeMoves >= 20) {
             enableArrows = true;
         }
     });
@@ -141,23 +183,6 @@ function initPano(listener) {
         toggleButtonPressed();
     });
 
-    $("#userNameSubmit").on("click" , function(){
-        let userNameLocal = $("#userName").val()?.toUpperCase();
-        if (!userNameLocal) {
-            alert("Please enter a username");
-        } else {
-            userName = userNameLocal;
-            toggleElement("#retryBtn", true);
-            toggleElement("#userNameSubmit", false);
-            toggleElement("#startFinishBtn", true);
-            toggleElement("#userName", false);
-            $("#userNameDisplay").text("Name: " + userName);
-            toggleElement("#userNameDisplay", true);
-            enableInteraction();
-            showNotification("Press start when at the start of your desired PassPath", -1);
-            userNameSubmitted = true;
-        }
-    });
     $("#retryBtn").on("click", function() {
         location.reload();
         return false;
@@ -166,42 +191,32 @@ function initPano(listener) {
         reset();
     })
     $("#speedModeBtnToggle").on("click", function() {
-        speedMode = !speedMode;
-        speedModeMoves = 0;
-        sleep(1000).then(showArrows);
-        if (speedMode) {
-            $("#speedModeBtnToggle").val("Speed Mode - Enabled");
-            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
-        } else {
-            $("#speedModeBtnToggle").val("Speed Mode - Disabled");
-            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
-        }
-        return;
+        toggleSpeedMode();
     })
+    $(document).on('keypress',function(e) {
+        switch (e.key) {
+            case ("`") :
+                toggleElement("#floating-panel");
+                return;
+            case (" "):
+                if(started) {
+                    toggleSpeedMode();
+                }
+                return;
+            case ("2"):
+                toggleElement("#passPathRoute-row");
+                return;
+            case ("k"):
+                toggleElement("path");
+                return;
+            case ("Enter"):
+                if (userNameSubmitted) {
+                    toggleButtonPressed();
+                }
+                return;
+        }
+    });
 }
-
-$(document).on('keypress',function(e) {
-    switch (e.key) {
-        case ("`") :
-            toggleElement("#floating-panel");
-            return;
-        case ("l"):
-            speedModeMoves = 0;
-            $("#speedModeCount-cell").text(maxSpeedModeMoves - speedModeMoves);
-            return;
-        case ("2"):
-            toggleElement("#passPathRoute-row");
-            return;
-        case ("k"):
-            toggleElement("path");
-            return;
-        case ("Enter"):
-            if (userNameSubmitted) {
-                toggleButtonPressed();
-            }
-            return;
-    }
-});
 
 function toggleButtonPressed() {
     if (!started) {
@@ -228,11 +243,8 @@ function toggleButtonPressed() {
 function finish() {
     toggleElement("#resetBtn", false);
     toggleElement("#speedModeBtnToggle", false);
-    if (logAttempt()) {
-       alert("logged In!")
-   }  else {
-       alert("Incorrect PassPath");
-   }
+    logAttempt();
+    alert("PassPath Complete , thank you! You may close this tab now.")
 }
 
 function logAttempt() {
@@ -364,16 +376,33 @@ function ajaxRequest(url , method, data){
     });
 }
 
+function toggleSpeedMode(status = null) {
+    console.log(status)
+    console.log("toggling")
+    if (status !== null) {
+        speedMode = status;
+    } else {
+        speedMode = !speedMode;
+    }
+    if (speedMode) {
+        $("#speedModeBtnToggle").val("Speed Mode - Enabled");
+        $("#speedModeBtnToggle").css("background-color", "green")
+        sleep(1000).then(showArrows);
+    } else {
+        $("#speedModeBtnToggle").val("Speed Mode - Disabled");
+        $("#speedModeBtnToggle").css("background-color", "red")
+        hideArrows();
+    }
+}
+
 function reset() {
     resetAttempt = true;
     logAttempt();
     let startPointGoogle = new google.maps.LatLng(startPoint.lat, startPoint.lng);
     panorama.setPosition(startPointGoogle)
 
-    speedModeMovesUsed = 0;
     speedMode = false;
     pointsVisited = [];
-    speedModeMoves = 0;
     leftJunction = true;
     lastCheckpoint = null;
     passPathString = [];
@@ -391,7 +420,6 @@ function reset() {
     resetAttempt = false;
 
     $("#speedMode-cell").text("Disabled");
-    $("#speedModeCount-cell").text("20");
     $("#distanceTravelled-cell").text("0");
     $("#startFinishBtn").css("background-color", "green");
     $("#startFinishBtn").val("Start");

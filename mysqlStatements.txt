@@ -1,5 +1,5 @@
 CREATE TABLE user (
-	userName VARCHAR(30) NOT NULL PRIMARY KEY,
+	userName CHAR(64) NOT NULL PRIMARY KEY,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,
@@ -7,14 +7,14 @@ CREATE TABLE user (
 	startLng DECIMAL(11,8) NOT NULL,
 	endLat DECIMAL(11,8) NOT NULL,
 	endLng DECIMAL(11,8) NOT NULL,
-	totalDistanceTravelled DECIMAL(5,2) NOT NULL,
+	totalDistanceTravelled DECIMAL(10,2) NOT NULL,
 	timeTaken INT(6) NOT NULL,
 	createdStamp TIMESTAMP NOT NULL
 );	
 
 CREATE TABLE attempt (
 	attemptId INT(12) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	userName VARCHAR(30) NOT NULL,
+	userName CHAR(64) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE attempt (
 	startLng DECIMAL(11,8) NOT NULL,
 	endLat DECIMAL(11,8) NOT NULL,
 	endLng DECIMAL(11,8) NOT NULL,
-	totalDistanceTravelled DECIMAL(5,2) NOT NULL,
+	totalDistanceTravelled DECIMAL(10,2) NOT NULL,
 	similarityArray LONGTEXT NOT NULL,
 	similarity DECIMAL(5,2) NOT NULL, 
 	distanceFromStart DECIMAL(5,2) NOT NULL,

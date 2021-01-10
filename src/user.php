@@ -3,7 +3,8 @@ ini_set('display_errors', 1);
 error_reporting(-1);
 
 $aResult = array();
-$userName = (string) $_POST['userName'];
+$userName = (string) hash('sha256', $_POST['userName']) ;
+
 $passPath = (String) implode($_POST['passPath'], ",");
 $passPathQuadrant = (String) implode($_POST['passPathQuadrant'], ",");
 $pointsVisited = (String) $_POST['pointsVisited'];
