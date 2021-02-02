@@ -101,6 +101,20 @@ body {
     font-family: "Roboto", "sans-serif";
     line-height: 30px;
 }
+#routeNumber{
+    position: absolute;
+    padding: 20px;
+    height: fit-content;
+    width: fit-content;
+    font-size: 2em;
+    top: 24%;
+    right: 0;
+    z-index: 11;
+    border: 1px solid #999;
+    text-align: center;
+    font-family: "Roboto", "sans-serif";
+    line-height: 30px;
+}
 
 #userNameSubmit {
     position: absolute;

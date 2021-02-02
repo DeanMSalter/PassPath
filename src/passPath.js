@@ -39,7 +39,7 @@ const minPointsVisited = 20;
 
     let map;
     function initMap() {
-        showNotification("Please enter your full name", -1);
+        showNotification("Please enter your full name, password and route number for desired route", -1);
         map = new google.maps.Map(document.getElementById("map"), {
             center: { lat: 20, lng: 0 },
             zoom: 3,
@@ -213,6 +213,7 @@ const minPointsVisited = 20;
         let data = {
             userName: userName,
             password: password,
+            routeNumber: routeNumber,
             passPath: passPathString,
             passPathQuadrant: passPathQuadrant,
             pointsVisited : JSON.stringify(pointsVisited),
@@ -325,17 +326,21 @@ const minPointsVisited = 20;
     function userNameSubmit() {
         let userNameLocal = $("#userName").val()?.toUpperCase();
         let passwordLocal = $("#passwordInput").val();
-
+        let routeNumberLocal = $("#routeNumber").val();
         if (!userNameLocal) {
             alert("Please enter a username");
         } else if (!passwordLocal) {
             alert("Please enter a password");
+        } else if(!routeNumberLocal) {
+            alert("Please enter a route number");
         }else{
             userName = userNameLocal.replace(/ /g , '');
             password = passwordLocal;
+            routeNumber = routeNumberLocal;
             toggleElement("#userNameSubmit", false);
             toggleElement("#userName", false);
             toggleElement("#passwordInput", false);
+            toggleElement("#routeNumber", false);
             toggleElement("#floating-panel", true);
             $("#userNameDisplay").text("Name: " + userName);
             toggleElement("#userNameDisplay", true);

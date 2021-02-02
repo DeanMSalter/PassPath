@@ -5,6 +5,7 @@ error_reporting(-1);
 $aResult = array();
 $userName = (string) hash('sha256', $_POST['userName']);
 $password = (string) hash('sha256', $_POST['password']);
+$routeNumber = (String) $_POST['routeNumber'];
 $passPath = (String) implode($_POST['passPath'], ",");
 $passPathQuadrant = (String) implode($_POST['passPathQuadrant'], ",");
 $pointsVisited = (String) $_POST['pointsVisited'];
@@ -22,10 +23,10 @@ if( !isset($_POST['functionName']) ) { $aResult['error'] = 'No function name!'; 
 if( !isset($aResult['error']) ) {
     switch($_POST['functionName']) {
         case 'insertUser':
-            insertUser($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
+            insertUser($userName, $password, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
             break;
         case 'logAttempt':
-            logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp);
+            logAttempt($userName, $password, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp);
             break;
         default:
             $aResult['error'] = 'Not found function '.$_POST['functionname'].'!';
@@ -34,14 +35,14 @@ if( !isset($aResult['error']) ) {
 
 }
 
-function insertUser($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp) {
+function insertUser($userName, $password, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp) {
     try {
-        if (!userExists($userName)) {
+        if (!userExists($userName, $routeNumber)) {
             $mysqli = mysqliConnect();
-            $insertUserStmt = $mysqli->prepare("INSERT INTO user (username, password, passPath, passPathQuadrant, pointsVisited, startLat,
-                                                startLng, endLat, endLng, totalDistanceTravelled, timeTaken, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-            $bp = $insertUserStmt->bind_param('ssssssssssss', $userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
-            if ( false===$bp ) {
+            $insertUserStmt = $mysqli->prepare("INSERT INTO user (username, password, routeNumber, passPath, passPathQuadrant, pointsVisited, startLat,
+                                                startLng, endLat, endLng, totalDistanceTravelled, timeTaken, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $bp = $insertUserStmt->bind_param('sssssssssssss', $userName, $password, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
+            if (false===$bp ) {
                 // again execute() is useless if you can't bind the parameters. Bail out somehow.
                 die('bind_param() failed: ' . htmlspecialchars($insertUserStmt->error));
             }
@@ -69,16 +70,16 @@ function insertUser($userName, $password, $passPath, $passPathQuadrant, $pointsV
     }
 }
 
-function logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp) {
+function logAttempt($userName, $password, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp) {
     try {
-        if (userExists($userName)) {
+        if (userExists($userName, $routeNumber)) {
             $similarityArray = array();
             $successfulAttempt = false;
 
             // --- Get intended user values ---
             $mysqli = mysqliConnect();
-            $checkUserStmt = $mysqli->prepare("SELECT * FROM user WHERE username = ?");
-            $checkUserStmt->bind_param('s', $userName);
+            $checkUserStmt = $mysqli->prepare("SELECT * FROM user WHERE username = ? AND routeNumber = ?");
+            $checkUserStmt->bind_param('ss', $userName, $routeNumber);
             $checkUserStmt->execute();
             $result = $checkUserStmt->get_result();
             $user = $result->fetch_array(MYSQLI_ASSOC);
@@ -158,10 +159,10 @@ function logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsV
             $similarityArray = implode(",", $similarityArray);
 
             // --- log attempt values ---
-            $insertUserStmt = $mysqli->prepare("INSERT INTO attempt (username, passwordCorrect, passPath, passPathQuadrant, pointsVisited, startLat, startLng, endLat,
+            $insertUserStmt = $mysqli->prepare("INSERT INTO attempt (username, passwordCorrect, routeNumber, passPath, passPathQuadrant, pointsVisited, startLat, startLng, endLat,
                                                             endLng, totalDistanceTravelled, similarityArray, similarity, distanceFromStart, distanceFromEnd,
-                                                             timeTaken, resetAttempt, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $insertUserStmt->bind_param('sssssssssssssssss', $userName, $passwordStatus, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $resetAttempt, $createdStamp);
+                                                             timeTaken, resetAttempt, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $insertUserStmt->bind_param('ssssssssssssssssss', $userName, $passwordStatus, $routeNumber, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $resetAttempt, $createdStamp);
             if (!$insertUserStmt->execute()) {
                 echo($insertUserStmt->error);
             };
@@ -191,11 +192,11 @@ function logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsV
     }
 }
 
-function userExists($userName) {
+function userExists($userName, $routeNumber) {
     try {
         $mysqli = mysqliConnect();
-        $checkUserStmt = $mysqli->prepare("SELECT * FROM user WHERE username = ?");
-        $checkUserStmt->bind_param('s', $userName);
+        $checkUserStmt = $mysqli->prepare("SELECT * FROM user WHERE username = ? AND routeNumber = ?");
+        $checkUserStmt->bind_param('ss', $userName, $routeNumber);
         $checkUserStmt->execute();
         $result = $checkUserStmt->get_result();
         $user = $result->fetch_array(MYSQLI_ASSOC);

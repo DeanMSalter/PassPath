@@ -1,6 +1,7 @@
 CREATE TABLE user (
-	userName CHAR(64) NOT NULL PRIMARY KEY,
+	userName CHAR(64) NOT NULL,
 	password CHAR(64) NOT NULL,
+	routeNumber INT(3) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,
@@ -10,13 +11,15 @@ CREATE TABLE user (
 	endLng DECIMAL(11,8) NOT NULL,
 	totalDistanceTravelled DECIMAL(10,2) NOT NULL,
 	timeTaken INT(6) NOT NULL,
-	createdStamp TIMESTAMP NOT NULL
+	createdStamp TIMESTAMP NOT NULL,
+	PRIMARY KEY (userName, routeNumber)
 );	
 
 CREATE TABLE attempt (
 	attemptId INT(12) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	userName CHAR(64) NOT NULL,
 	passwordCorrect VARCHAR(5) NOT NULL,
+    routeNumber INT(3) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,
@@ -27,10 +30,10 @@ CREATE TABLE attempt (
 	totalDistanceTravelled DECIMAL(10,2) NOT NULL,
 	similarityArray LONGTEXT NOT NULL,
 	similarity DECIMAL(5,2) NOT NULL, 
-	distanceFromStart DECIMAL(5,2) NOT NULL,
-	distanceFromEnd DECIMAL(5,2) NOT NULL,
+	distanceFromStart DECIMAL(65,2) NOT NULL,
+	distanceFromEnd DECIMAL(65,2) NOT NULL,
 	timeTaken INT(6) NOT NULL,
 	resetAttempt VARCHAR(5) NOT NULL,
 	createdStamp TIMESTAMP NOT NULL,
-	FOREIGN KEY (userName) REFERENCES user(userName)
-);	
+    FOREIGN KEY (userName) REFERENCES user(userName)
+);
