@@ -1,5 +1,6 @@
 CREATE TABLE user (
 	userName CHAR(64) NOT NULL PRIMARY KEY,
+	password CHAR(64) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,
@@ -15,6 +16,7 @@ CREATE TABLE user (
 CREATE TABLE attempt (
 	attemptId INT(12) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	userName CHAR(64) NOT NULL,
+	passwordCorrect VARCHAR(5) NOT NULL,
 	passPath LONGTEXT NOT NULL,
 	passPathQuadrant LONGTEXT NOT NULL,
 	pointsVisited LONGTEXT NOT NULL,

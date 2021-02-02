@@ -115,3 +115,6 @@ body {
     border-radius: 15px;
     -webkit-border-radius: 15px;
 }
+li {
+    text-align: left;
+}

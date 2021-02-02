@@ -3,8 +3,8 @@ ini_set('display_errors', 1);
 error_reporting(-1);
 
 $aResult = array();
-$userName = (string) hash('sha256', $_POST['userName']) ;
-
+$userName = (string) hash('sha256', $_POST['userName']);
+$password = (string) hash('sha256', $_POST['password']);
 $passPath = (String) implode($_POST['passPath'], ",");
 $passPathQuadrant = (String) implode($_POST['passPathQuadrant'], ",");
 $pointsVisited = (String) $_POST['pointsVisited'];
@@ -22,10 +22,10 @@ if( !isset($_POST['functionName']) ) { $aResult['error'] = 'No function name!'; 
 if( !isset($aResult['error']) ) {
     switch($_POST['functionName']) {
         case 'insertUser':
-            insertUser($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
+            insertUser($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
             break;
         case 'logAttempt':
-            logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp);
+            logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp);
             break;
         default:
             $aResult['error'] = 'Not found function '.$_POST['functionname'].'!';
@@ -34,13 +34,13 @@ if( !isset($aResult['error']) ) {
 
 }
 
-function insertUser($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp) {
+function insertUser($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp) {
     try {
         if (!userExists($userName)) {
             $mysqli = mysqliConnect();
-            $insertUserStmt = $mysqli->prepare("INSERT INTO user (username, passPath, passPathQuadrant, pointsVisited, startLat,
-                                                startLng, endLat, endLng, totalDistanceTravelled, timeTaken, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-            $bp = $insertUserStmt->bind_param('sssssssssss', $userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
+            $insertUserStmt = $mysqli->prepare("INSERT INTO user (username, password, passPath, passPathQuadrant, pointsVisited, startLat,
+                                                startLng, endLat, endLng, totalDistanceTravelled, timeTaken, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+            $bp = $insertUserStmt->bind_param('ssssssssssss', $userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $createdStamp);
             if ( false===$bp ) {
                 // again execute() is useless if you can't bind the parameters. Bail out somehow.
                 die('bind_param() failed: ' . htmlspecialchars($insertUserStmt->error));
@@ -69,7 +69,7 @@ function insertUser($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
     }
 }
 
-function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp) {
+function logAttempt($userName, $password, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $timeTaken, $resetAttempt, $createdStamp) {
     try {
         if (userExists($userName)) {
             $similarityArray = array();
@@ -82,6 +82,14 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
             $checkUserStmt->execute();
             $result = $checkUserStmt->get_result();
             $user = $result->fetch_array(MYSQLI_ASSOC);
+
+            // --- password ---
+            $correctPassword = $user["password"];
+            if (hash_equals($correctPassword, $password)) {
+                $passwordStatus = "true";
+            } else {
+                $passwordStatus = "false";
+            }
 
             // --- Distance from start/end points ---
             $correctStartLat = $user["startLat"];
@@ -100,9 +108,13 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
 
             $differenceInArraySizes = abs($sizeOfSubmittedQuadrantArray - $sizeOfCorrectQuadrantArray);
 
+            $ignoreExtraPaths = $distanceFromStart < 25 && $distanceFromEnd < 25;
             //Work out the shortest route around the compass from the submitted passPath decision to the correct one then adds it to the similarity array
             //Maximum difference value is 4 as each increment represents 45 degrees (45*4 = 180) as once it gets to 180 it loops round.
             for ($i = 0; $i < $sizeOfSubmittedQuadrantArray; $i++) {
+                if ($ignoreExtraPaths && (!isset($correctQuadrantArray[$i]) || !isset($submittedQuadrantArray[$i]))){
+                    continue;
+                }
                 if ($submittedQuadrantArray[$i] == $correctQuadrantArray[$i]) {
                     array_push($similarityArray, 0);
                     continue;
@@ -111,9 +123,6 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
                 $CWCounter = 0;
                 $CCWValue= $submittedQuadrantArray[$i];
                 $CCWCounter = 0;
-                if (!isset($correctQuadrantArray[$i])){
-                    continue;
-                }
                 while ($CWValue != $correctQuadrantArray[$i]){
                     $CWCounter ++;
                     if ($CWValue == 7) {
@@ -135,11 +144,13 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
                 } else {
                     array_push($similarityArray, $CWCounter);
                 }
-            }
+            };
 
             //If the submitted PassPath is too long or too short , whatever the difference is add a 4 for each extra/fewer decisions as 4 is the max difference
-            for ($o = 0; $o < $differenceInArraySizes ; $o++) {
-                array_push($similarityArray, 4);
+            if (!$ignoreExtraPaths) {
+             for ($o = 0; $o < $differenceInArraySizes ; $o++) {
+                            array_push($similarityArray, 4);
+             };
             }
 
             //Get sum of similarity Array then convert it to a percentage.
@@ -147,18 +158,18 @@ function logAttempt($userName, $passPath, $passPathQuadrant, $pointsVisited, $st
             $similarityArray = implode(",", $similarityArray);
 
             // --- log attempt values ---
-            $insertUserStmt = $mysqli->prepare("INSERT INTO attempt (username, passPath, passPathQuadrant, pointsVisited, startLat, startLng, endLat,
+            $insertUserStmt = $mysqli->prepare("INSERT INTO attempt (username, passwordCorrect, passPath, passPathQuadrant, pointsVisited, startLat, startLng, endLat,
                                                             endLng, totalDistanceTravelled, similarityArray, similarity, distanceFromStart, distanceFromEnd,
-                                                             timeTaken, resetAttempt, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-            $insertUserStmt->bind_param('ssssssssssssssss', $userName, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $resetAttempt, $createdStamp);
+                                                             timeTaken, resetAttempt, createdStamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $insertUserStmt->bind_param('sssssssssssssssss', $userName, $passwordStatus, $passPath, $passPathQuadrant, $pointsVisited, $startLat, $startLng, $endLat, $endLng, $totalDistanceTravelled, $similarityArray, $similarity, $distanceFromStart, $distanceFromEnd, $timeTaken, $resetAttempt, $createdStamp);
             if (!$insertUserStmt->execute()) {
                 echo($insertUserStmt->error);
-            }
+            };
             $insertUserStmt->close();
             $mysqli->close();
 
             // --- successful attempt calc ---
-            if ($distanceFromStart < 100 && $distanceFromEnd < 100 && $similarity >= 95) {
+            if ($distanceFromStart < 50 && $distanceFromEnd < 50 && $similarity >= 95) {
                 $successfulAttempt = true;
             }
             echo json_encode(array(

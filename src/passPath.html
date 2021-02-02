@@ -5,8 +5,7 @@
         <link rel="stylesheet" href="passPath.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-<!--        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initPano&libraries=&v=weekly" defer></script>-->
-        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initMap&libraries=&v=weekly" defer></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA5s2E81rder6RamZrXH_tm4d521nGt6b8&callback=initMap&libraries=places&v=weekly" defer></script>
         <script src="passPath.js"></script>
 
     </head>
@@ -14,7 +13,7 @@
         <div id="overlay"></div>
         <div id="map"></div>
 <!--        <div id="pano"></div>-->
-        <div id="floating-panel">
+        <div id="floating-panel" class="hidden">
             <table>
                 <tr id="distanceTravelled-row">
                     <td><b>Distance Travelled</b></td>
@@ -25,8 +24,8 @@
         <div id="notifications" class="hidden"></div>
         <input type="button" title="(Enter)" class="hidden" id="startFinishBtn" value="Start">
         <input type="text" id="userName" placeholder="Full Name"/>
+        <input type="password" id="passwordInput" placeholder="password"/>
         <input type="button" id="userNameSubmit" value="Enter"/>
-        <input type="button" id="retryBtn" value="Start again" class="hidden" placeholder="Retry entirely"/>
         <input type="button" id="resetBtn" value="Back To Start Location" class="hidden" placeholder="Go back to start point"/>
         <input type="button" id="speedModeBtnToggle" value="Speed Mode - Disabled" class="hidden" />
         <div id="userNameDisplay" class="hidden"></div>
