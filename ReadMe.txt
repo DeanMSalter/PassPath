@@ -1,1 +1,0 @@
-passPath readme
